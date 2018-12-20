@@ -30,7 +30,7 @@ namespace Agent.Plugins.TestResultParser.Plugin
         {
             var logData = new LogData
             {
-                Message = data,
+                Line = data,
                 LineNumber = ++_counter
             };
 

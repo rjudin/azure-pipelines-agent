@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Agent.Sdk;
-using Pipelines = Microsoft.TeamFoundation.DistributedTask.Pipelines;
 using Microsoft.VisualStudio.Services.Agent.Util;
-using System.IO;
 using Microsoft.VisualStudio.Services.Common;
+using Pipelines = Microsoft.TeamFoundation.DistributedTask.Pipelines;
 
 namespace Agent.Plugins.Log
 {
