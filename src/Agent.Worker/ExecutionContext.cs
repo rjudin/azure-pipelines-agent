@@ -23,7 +23,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
     [ServiceLocator(Default = typeof(ExecutionContext))]
     public interface IExecutionContext : IAgentService
     {
-        Guid Id { get; }
         Task ForceCompleted { get; }
         TaskResult? Result { get; set; }
         string ResultCode { get; set; }
@@ -40,11 +39,12 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         List<IAsyncCommandContext> AsyncCommands { get; }
         List<string> PrependPath { get; }
         ContainerInfo Container { get; }
+        List<ContainerInfo> SidecarContainers { get; }
 
         // Initialize
         void InitializeJob(Pipelines.AgentJobRequestMessage message, CancellationToken token);
         void CancelToken();
-        IExecutionContext CreateChild(Guid recordId, string displayName, string refName, Variables taskVariables = null, bool outputForward = false);
+        IExecutionContext CreateChild(Guid recordId, string displayName, string refName, Variables taskVariables = null);
 
         // logging
         bool WriteDebug { get; }
@@ -74,12 +74,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         private readonly List<IAsyncCommandContext> _asyncCommands = new List<IAsyncCommandContext>();
         private readonly HashSet<string> _outputvariables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        private IAgentLogPlugin _logPlugin;
         private IPagingLogger _logger;
         private IJobServerQueue _jobServerQueue;
         private IExecutionContext _parentExecutionContext;
 
-        private bool _outputForward = false;
         private Guid _mainTimelineId;
         private Guid _detailTimelineId;
         private int _childTimelineRecordOrder = 0;
@@ -90,7 +88,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         // only job level ExecutionContext will track throttling delay.
         private long _totalThrottlingDelayInMilliseconds = 0;
 
-        public Guid Id => _record.Id;
         public Task ForceCompleted => _forceCompleted.Task;
         public CancellationToken CancellationToken => _cancellationTokenSource.Token;
         public List<ServiceEndpoint> Endpoints { get; private set; }
@@ -102,6 +99,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         public bool WriteDebug { get; private set; }
         public List<string> PrependPath { get; private set; }
         public ContainerInfo Container { get; private set; }
+        public List<ContainerInfo> SidecarContainers { get; private set; }
 
         public List<IAsyncCommandContext> AsyncCommands => _asyncCommands;
 
@@ -157,7 +155,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             });
         }
 
-        public IExecutionContext CreateChild(Guid recordId, string displayName, string refName, Variables taskVariables = null, bool outputForward = false)
+        public IExecutionContext CreateChild(Guid recordId, string displayName, string refName, Variables taskVariables = null)
         {
             Trace.Entering();
 
@@ -174,7 +172,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             child._parentExecutionContext = this;
             child.PrependPath = PrependPath;
             child.Container = Container;
-            child._outputForward = outputForward;
+            child.SidecarContainers = SidecarContainers;
 
             child.InitializeTimelineRecord(_mainTimelineId, recordId, _record.Id, ExecutionContextType.Task, displayName, refName, ++_childTimelineRecordOrder);
 
@@ -400,7 +398,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             // Prepend Path
             PrependPath = new List<string>();
 
-            // Docker 
+            // Docker (JobContainer)
             string imageName = Variables.Get("_PREVIEW_VSTS_DOCKER_IMAGE");
             if (string.IsNullOrEmpty(imageName))
             {
@@ -424,6 +422,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             else
             {
                 Container = null;
+            }
+
+            // Docker (Sidecar Containers)
+            SidecarContainers = new List<ContainerInfo>();
+            foreach (var sidecar in message.JobSidecarContainers)
+            {
+                var networkAlias = sidecar.Key;
+                var containerResourceAlias = sidecar.Value;
+                var containerResource = message.Resources.Containers.Single(c => string.Equals(c.Alias, containerResourceAlias, StringComparison.OrdinalIgnoreCase));
+                SidecarContainers.Add(new ContainerInfo(HostContext, containerResource, isJobContainer: false) { ContainerNetworkAlias = networkAlias });
             }
 
             // Proxy variables
@@ -534,17 +542,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 {
                     parentContext._logger.Write(msg);
                 }
-            }
-
-            // write to plugin daemon, 
-            if (_outputForward)
-            {
-                if (_logPlugin == null)
-                {
-                    _logPlugin = HostContext.GetService<IAgentLogPlugin>();
-                }
-
-                _logPlugin.Write(_record.Id, msg);
             }
 
             _jobServerQueue.QueueWebConsoleLine(_record.Id, msg);

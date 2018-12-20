@@ -4,8 +4,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.TeamFoundation.DistributedTask.WebApi;
-using Microsoft.TeamFoundation.Framework.Common;
 using Microsoft.VisualStudio.Services.Agent.Util;
 using Microsoft.VisualStudio.Services.Agent.Worker.Container;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -27,6 +25,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Handlers
                                bool requireExitCodeZero,
                                Encoding outputEncoding,
                                bool killProcessOnCancel,
+                               bool inheritConsoleHandler,
                                CancellationToken cancellationToken);
     }
 
@@ -59,6 +58,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Handlers
                                             bool requireExitCodeZero,
                                             Encoding outputEncoding,
                                             bool killProcessOnCancel,
+                                            bool inheritConsoleHandler,
                                             CancellationToken cancellationToken)
         {
             using (var processInvoker = HostContext.CreateService<IProcessInvoker>())
@@ -73,6 +73,8 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Handlers
                                                          requireExitCodeZero: requireExitCodeZero,
                                                          outputEncoding: outputEncoding,
                                                          killProcessOnCancel: killProcessOnCancel,
+                                                         contentsToStandardIn: null,
+                                                         inheritConsoleHandler: inheritConsoleHandler,
                                                          cancellationToken: cancellationToken);
             }
         }
@@ -125,6 +127,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Handlers
                                             bool requireExitCodeZero,
                                             Encoding outputEncoding,
                                             bool killProcessOnCancel,
+                                            bool inheritConsoleHandler,
                                             CancellationToken cancellationToken)
         {
             // make sure container exist.
@@ -185,9 +188,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Handlers
                 outputEncoding = null;
 #endif
 
-                var redirectStandardIn = new InputQueue<string>();
-                redirectStandardIn.Enqueue(JsonUtility.ToString(payload));
-
                 return await processInvoker.ExecuteAsync(workingDirectory: HostContext.GetDirectory(WellKnownDirectory.Work),
                                                          fileName: containerEnginePath,
                                                          arguments: containerExecutionArgs,
@@ -195,7 +195,8 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Handlers
                                                          requireExitCodeZero: requireExitCodeZero,
                                                          outputEncoding: outputEncoding,
                                                          killProcessOnCancel: killProcessOnCancel,
-                                                         redirectStandardIn: redirectStandardIn,
+                                                         contentsToStandardIn: new List<string>() { JsonUtility.ToString(payload) },
+                                                         inheritConsoleHandler: inheritConsoleHandler,
                                                          cancellationToken: cancellationToken);
             }
         }
