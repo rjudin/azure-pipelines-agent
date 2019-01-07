@@ -18,7 +18,7 @@ namespace Agent.Plugins.TestResultParser.Plugin
             _httpClient = clientFactory.GetClient<TestManagementHttpClient>();
         }
 
-        public Task PublishAsync(TestRun testRun)
+        public async Task PublishAsync(TestRun testRun)
         {
             var r = new RunCreateModel(name: "Log parsed test run", buildId: _pipelineConfig.BuildId, state: TestRunState.InProgress.ToString(), isAutomated: true);
             var run = _httpClient.CreateTestRunAsync(r, _pipelineConfig.Project).SyncResult();
@@ -66,9 +66,8 @@ namespace Agent.Plugins.TestResultParser.Plugin
                 });
             }
 
-            var results = _httpClient.AddTestResultsToTestRunAsync(testResults.ToArray(), _pipelineConfig.Project, run.Id).SyncResult();
-
-            return _httpClient.UpdateTestRunAsync(new RunUpdateModel(state: TestRunState.Completed.ToString()), _pipelineConfig.Project, run.Id);
+            _httpClient.AddTestResultsToTestRunAsync(testResults.ToArray(), _pipelineConfig.Project, run.Id).SyncResult();
+            await _httpClient.UpdateTestRunAsync(new RunUpdateModel(state: TestRunState.Completed.ToString()), _pipelineConfig.Project, run.Id);
         }
 
         private readonly TestManagementHttpClient _httpClient;

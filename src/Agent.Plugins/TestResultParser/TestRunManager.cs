@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Agent.Plugins.Log.TestResultParser.Contracts;
 
@@ -12,6 +13,7 @@ namespace Agent.Plugins.Log.TestResultParser.Plugin
     {
         private readonly ITestRunPublisher _publisher;
         private readonly ITraceLogger _logger;
+        private readonly List<Task> _runningTasks = new List<Task>();
 
         /// <summary>
         /// Construct the TestRunManger
@@ -23,15 +25,20 @@ namespace Agent.Plugins.Log.TestResultParser.Plugin
         }
 
         /// <inheritdoc/>
-        public Task PublishAsync(TestRun testRun)
+        public async Task PublishAsync(TestRun testRun)
         {
             var validatedTestRun = this.ValidateAndPrepareForPublish(testRun);
             if (validatedTestRun != null)
             {
-                return _publisher.PublishAsync(validatedTestRun); //TODO fix this
+                var task = _publisher.PublishAsync(validatedTestRun); //TODO fix this
+                _runningTasks.Add(task);
+                await task;
             }
+        }
 
-            return Task.CompletedTask;
+        public async Task FinalizeAsync()
+        {
+            await Task.Run(() => { Task.WaitAll(_runningTasks.ToArray()); });
         }
 
         private TestRun ValidateAndPrepareForPublish(TestRun testRun)

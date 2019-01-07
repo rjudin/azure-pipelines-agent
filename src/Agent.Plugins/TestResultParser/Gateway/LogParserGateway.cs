@@ -16,8 +16,8 @@ namespace Agent.Plugins.TestResultParser.Plugin
             _logger = traceLogger;
             var publisher = new PipelineTestRunPublisher(clientFactory, pipelineConfig);
             var telemetry = new TelemetryDataCollector(clientFactory);
-            var testRunManager = new TestRunManager(publisher, _logger);
-            var parsers = ParserFactory.GetTestResultParsers(testRunManager, traceLogger, telemetry);
+            _testRunManager = new TestRunManager(publisher, _logger);
+            var parsers = ParserFactory.GetTestResultParsers(_testRunManager, traceLogger, telemetry);
 
             foreach (var parser in parsers)
             {
@@ -43,6 +43,7 @@ namespace Agent.Plugins.TestResultParser.Plugin
             {
                 _broadcast.Complete();
                 Task.WaitAll(_subscribers.Values.Select(x => x.Completion).ToArray());
+                _testRunManager.FinalizeAsync().RunSynchronously();
             }
             catch (Exception ex)
             {
@@ -79,5 +80,6 @@ namespace Agent.Plugins.TestResultParser.Plugin
         private readonly ConcurrentDictionary<Guid, ITargetBlock<LogData>> _subscribers = new ConcurrentDictionary<Guid, ITargetBlock<LogData>>();
         private int _counter;
         private ITraceLogger _logger;
+        private ITestRunManager _testRunManager;
     }
 }

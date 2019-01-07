@@ -299,7 +299,7 @@ namespace Agent.Sdk
                 {
                     // start process plugins background
                     _trace.Trace($"Start process task for plugin '{plugin.FriendlyName}'");
-                    var task = RunAsync(plugin, tokenSource.Token);
+                    var task =  RunAsync(plugin, tokenSource.Token);
                     processTasks[plugin.FriendlyName] = task;
                 }
 
@@ -431,6 +431,7 @@ namespace Agent.Sdk
             try
             {
                 initialized = await plugin.InitializeAsync(context);
+
             }
             catch (Exception ex)
             {

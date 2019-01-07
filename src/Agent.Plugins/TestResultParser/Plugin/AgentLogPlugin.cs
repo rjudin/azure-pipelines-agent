@@ -13,9 +13,9 @@ namespace Agent.Plugins.Log
     {
         public string FriendlyName => "Test Result Log Parser";
 
-        public Task<bool> InitializeAsync(IAgentLogPluginContext context)
+        public async Task<bool> InitializeAsync(IAgentLogPluginContext context)
         {
-            return new Task<bool>(() =>
+            return await Task.Run(() =>
             {
                 try
                 {
@@ -45,14 +45,14 @@ namespace Agent.Plugins.Log
             });
         }
 
-        public Task ProcessLineAsync(IAgentLogPluginContext context, Pipelines.TaskStepDefinitionReference step, string line)
+        public async Task ProcessLineAsync(IAgentLogPluginContext context, Pipelines.TaskStepDefinitionReference step, string line)
         {
-            return _inputDataParser.ProcessDataAsync(line);
+            await _inputDataParser.ProcessDataAsync(line);
         }
 
-        public Task FinalizeAsync(IAgentLogPluginContext context)
+        public async Task FinalizeAsync(IAgentLogPluginContext context)
         {
-            return new Task(() =>
+            await Task.Run(() =>
             {
                 _inputDataParser.Complete();
             });
