@@ -138,7 +138,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                         }
                         containers.AddRange(context.SidecarContainers);
 
-                        preJobSteps.Add(new JobExtensionRunner(runAsync: containerProvider.StartContainerAsync,
+                        preJobSteps.Add(new JobExtensionRunner(runAsync: containerProvider.StartContainersAsync,
                                                                           condition: ExpressionManager.Succeeded,
                                                                           displayName: StringUtil.Loc("InitializeContainer"),
                                                                           data: (object)containers));
