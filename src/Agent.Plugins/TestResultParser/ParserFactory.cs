@@ -10,14 +10,7 @@ namespace Agent.Plugins.Log.TestResultParser.Plugin
     {
         public static IEnumerable<AbstractTestResultParser> GetTestResultParsers(ITestRunManager testRunManager, ITraceLogger logger, ITelemetryDataCollector telemetry)
         {
-            try
-            {
-                Assembly.LoadFile(@"E:\Repo\azure-pipelines-agent\_layout\bin\Agent.Plugins.Log.TestResultParser.Parser.dll");
-            }
-            catch (Exception ex)
-            {
-                //catch exception
-            }
+            Assembly.LoadFrom(@"Agent.Plugins.Log.TestResultParser.Parser.dll");
 
             var interfaceType = typeof(AbstractTestResultParser);
             return AppDomain.CurrentDomain.GetAssemblies()
