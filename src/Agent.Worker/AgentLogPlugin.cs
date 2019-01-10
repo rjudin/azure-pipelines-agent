@@ -67,7 +67,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             {
                 foreach (var plugin in _logPlugins)
                 {
-                    if (context.Variables.GetBoolean($"agent.disablelog.{plugin.Key}") ?? false)
+                    if (context.Variables.GetBoolean($"agent.disablelogplugin.{plugin.Key}") ?? false)
                     {
                         // skip plugin 
                         context.Debug($"Log plugin '{plugin.Key}' is disabled.");
@@ -197,7 +197,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                         }
                     }
 
-                    await Task.WhenAny(Task.Delay(100), _pluginHostProcess);
+                    await Task.WhenAny(Task.Delay(250), _pluginHostProcess);
                 }
 
                 // try process output queue again, in case we have buffered outputs haven't process on process exit

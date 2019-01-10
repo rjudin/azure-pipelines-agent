@@ -308,10 +308,10 @@ namespace Agent.Sdk
                 tokenSource.Cancel();
 
                 _trace.Trace($"Wait for all plugins finish process outputs.");
-                await Task.WhenAll(processTasks.Values);
-
-                foreach (var task in processTasks)
+                while (processTasks.Count > 0)
                 {
+                    var completedtask = await Task.WhenAny(processTasks.Values);
+                    var task = processTasks.Where(x => x.Value == completedtask).Single();
                     try
                     {
                         await task.Value;
@@ -320,6 +320,10 @@ namespace Agent.Sdk
                     catch (Exception ex)
                     {
                         _trace.Output($"Plugin '{task.Key}' failed with: {ex}");
+                    }
+                    finally
+                    {
+                        processTasks.Remove(task.Key);
                     }
                 }
 
@@ -345,8 +349,10 @@ namespace Agent.Sdk
                 }
 
                 _trace.Trace($"Wait for all plugins finish finalization.");
-                foreach (var task in finalizeTasks)
+                while (finalizeTasks.Count > 0)
                 {
+                    var completedtask = await Task.WhenAny(finalizeTasks.Values);
+                    var task = finalizeTasks.Where(x => x.Value == completedtask).Single();
                     try
                     {
                         await task.Value;
@@ -355,6 +361,10 @@ namespace Agent.Sdk
                     catch (Exception ex)
                     {
                         _trace.Output($"Plugin '{task.Key}' failed with: {ex}");
+                    }
+                    finally
+                    {
+                        finalizeTasks.Remove(task.Key);
                     }
                 }
 
@@ -410,7 +420,7 @@ namespace Agent.Sdk
                             _shortCircuited[queue.Key].TrySetResult(0);
                         }
                     }
-                    else
+                    else if (flag[queue.Key] > 0)
                     {
                         _trace.Trace($"Plugin '{queue.Key}' has cleared out buffered outputs.");
                         flag[queue.Key] = 0;
