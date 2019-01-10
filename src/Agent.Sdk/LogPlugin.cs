@@ -308,10 +308,8 @@ namespace Agent.Sdk
                 tokenSource.Cancel();
 
                 _trace.Trace($"Wait for all plugins finish process outputs.");
-                while (processTasks.Count > 0)
+                foreach (var task in processTasks)
                 {
-                    var completedtask = await Task.WhenAny(processTasks.Values);
-                    var task = processTasks.Where(x => x.Value == completedtask).Single();
                     try
                     {
                         await task.Value;
@@ -320,10 +318,6 @@ namespace Agent.Sdk
                     catch (Exception ex)
                     {
                         _trace.Output($"Plugin '{task.Key}' failed with: {ex}");
-                    }
-                    finally
-                    {
-                        processTasks.Remove(task.Key);
                     }
                 }
 
@@ -349,10 +343,8 @@ namespace Agent.Sdk
                 }
 
                 _trace.Trace($"Wait for all plugins finish finalization.");
-                while (finalizeTasks.Count > 0)
+                foreach (var task in finalizeTasks)
                 {
-                    var completedtask = await Task.WhenAny(finalizeTasks.Values);
-                    var task = finalizeTasks.Where(x => x.Value == completedtask).Single();
                     try
                     {
                         await task.Value;
@@ -361,10 +353,6 @@ namespace Agent.Sdk
                     catch (Exception ex)
                     {
                         _trace.Output($"Plugin '{task.Key}' failed with: {ex}");
-                    }
-                    finally
-                    {
-                        finalizeTasks.Remove(task.Key);
                     }
                 }
 
